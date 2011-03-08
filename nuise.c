@@ -32,54 +32,6 @@
 
 extern uint32_t tag;
 
-int get_first_reply(libusb_device_handle* dev) {
-	unsigned char buffer[512];
-	int res;
-	int transferred;
-	res = libusb_bulk_transfer(dev, 0x81, buffer, 512, &transferred, 0);
-	if(res != 0 ) {
-		LOG("Error reading first reply: %d\ttransferred: %d (expected %d)\n", res, transferred, 0x60);
-		return res;
-	}
-	LOG("Reading first reply: ");
-	int i;
-	for(i = 0; i < transferred; ++i) {
-		LOG("%02X ", buffer[i]);
-	}
-	LOG("\n");
-	return res;
-}
-
-int get_reply(libusb_device_handle* dev) {
-	unsigned char dump[512];
-	bootloader_status_code buffer = ((bootloader_status_code*)dump)[0];
-	int res;
-	int transferred;
-	res = libusb_bulk_transfer(dev, 0x81, (unsigned char*)&buffer, 512, &transferred, 0);
-	if(res != 0 || transferred != sizeof(bootloader_status_code)) {
-		LOG("Error reading reply: %d\ttransferred: %d (expected %d)\n", res, transferred, sizeof(bootloader_status_code));
-		return res;
-	}
-	if(le32(buffer.magic) != 0x0a6fe000) {
-		LOG("Error reading reply: invalid magic %08X\n",buffer.magic);
-		return -1;
-	}
-	if(le32(buffer.tag) != tag) {
-		LOG("Error reading reply: non-matching taguence number %08X (expected %08X)\n", buffer.tag, tag);
-		return -1;
-	}
-	if(le32(buffer.status) != 0) {
-		LOG("Notice reading reply: last uint32_t was nonzero: %d\n", buffer.status);
-	}
-	LOG("Reading reply: ");
-	int i;
-	for(i = 0; i < transferred; ++i) {
-		LOG("%02X ", ((unsigned char*)(&buffer))[i]);
-	}
-	LOG("\n");
-	return res;
-}
-
 static void prepare_iso_out_data(iso_out_stream* stream, uint8_t* buffer) {
 	memset(buffer, 0, 76);
 	((uint16_t*)buffer)[0] = stream->window;

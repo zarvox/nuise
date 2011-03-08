@@ -55,8 +55,6 @@ typedef struct {
 	int32_t samples[128];
 } audio_data_block;
 
-int get_first_reply(libusb_device_handle* dev);
-int get_reply(libusb_device_handle* dev);
 int start_iso_out(libusb_device_handle* dev, iso_out_stream* stream, int endpoint, int xfers, int pkts, int len);
 int start_iso_in(libusb_device_handle* dev, iso_in_stream* stream, int endpoint, int xfers, int pkts, int len);
 
