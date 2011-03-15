@@ -25,53 +25,100 @@
 
 uint32_t tag;
 static libusb_device_handle *dev;
+libusb_device** devlist;
 
 int main(int argc, char** argv) {
 	libusb_init(NULL);
 	libusb_set_debug(0,3);
-	dev = libusb_open_device_with_vid_pid(NULL, 0x045e, 0x02ad);
+
+	int need_fw_upload = 0;
+	int n_devs = libusb_get_device_list(NULL, &devlist);
+	if(n_devs < 0) {
+		LOG("error: LIBUSB_ERROR_NO_MEM in libusb_get_device_list()\n");
+		exit(1);
+	}
+	ssize_t item;
+	for(item = 0; item < n_devs - 1; item++) { // devlist is NULL terminated
+		struct libusb_device_descriptor descriptor;
+		int ret;
+		ret = libusb_get_device_descriptor(devlist[item], &descriptor);
+		if(ret != 0) {
+			LOG("Error in libusb_get_device_descriptor: %d\n", ret);
+			exit(1);
+		} else {
+			if(descriptor.idVendor == 0x045e && descriptor.idProduct == 0x02ad) {
+				// Check if this is the bootloader or the audio firmware
+				struct libusb_config_descriptor* config;
+				libusb_get_active_config_descriptor(devlist[item], &config);
+				if(config->bNumInterfaces == 1) // The audio firmware has 2 interfaces, the bootloader 1
+					need_fw_upload = 1;
+				libusb_free_config_descriptor(config);
+				// Now, get a device handle
+				ret = libusb_open(devlist[item], &dev);
+				if(ret != 0) {
+					LOG("Error in libusb_open: %d\n",ret);
+					exit(1);
+				}
+				break;
+			}
+		}
+	}
+
+	libusb_free_device_list(devlist, 1);
+	devlist = NULL;
 
 	if(dev == NULL) {
 		printf("Couldn't open device.\n");
 		return 1;
 	}
 
+	LOG("Successfully found device.\n");
+
 	libusb_set_configuration(dev, 1);
 	libusb_claim_interface(dev, 0);
 
 	tag = 0x08040201;
 
-	if(upload_firmware(dev) != 0) {
-		LOG("Something went wrong in upload_firmware(), aborting\n");
-		goto cleanup;
-	}
-
-	libusb_release_interface(dev, 0);
-	libusb_close(dev);
-
-	// Now the device reenumerates.  Let it reappear:
-	dev = NULL;
-	do {
-		usleep(1000000);
-		dev = libusb_open_device_with_vid_pid(NULL, 0x045e, 0x02ad);
-		printf("Trying to reopen device...\n");
-	} while (dev == NULL);
-	libusb_set_configuration(dev, 1);
-	libusb_claim_interface(dev, 0);
-
 	/*
-	 * We skip uploading CEMD data because:
-	 * 1) it's not required
-	 * 2) I don't know how to produce it anyway
-	 * 3) I'm not sure what it means, and I don't want to ship it
-	 *
-	 * The code exists here to show how it would work, though.
-
-	if(upload_cemd_data(dev) != 0) {
-		LOG("Something went wrong in upload_cemd_data(), aborting\n");
-		goto cleanup;
-	}
+	// The bootloader has one configuration; audios.bin has two.
+	// We only try to upload firmware if we haven't already sent it this boot
+	LOG("bNumConfigurations: %d\n", descriptor.bNumConfigurations);
 	*/
+	if(need_fw_upload) {
+		if(upload_firmware(dev) != 0) {
+			LOG("Something went wrong in upload_firmware(), aborting\n");
+			goto cleanup;
+		}
+
+		libusb_release_interface(dev, 0);
+		libusb_close(dev);
+
+		// Now the device reenumerates.  Let it reappear:
+		dev = NULL;
+		do {
+			usleep(1000000);
+			dev = libusb_open_device_with_vid_pid(NULL, 0x045e, 0x02ad);
+			printf("Trying to reopen device...\n");
+		} while (dev == NULL);
+		libusb_set_configuration(dev, 1);
+		libusb_claim_interface(dev, 0);
+
+		/*
+		 * We skip uploading CEMD data because:
+		 * 1) it's not required
+		 * 2) I don't know how to produce it anyway
+		 * 3) I'm not sure what it means, and I don't want to ship it
+		 *
+		 * The code exists here to show how it would work, though.
+		 */
+
+		if(upload_cemd_data(dev) != 0) {
+			LOG("Something went wrong in upload_cemd_data(), aborting\n");
+			goto cleanup;
+		}
+	} else {
+		LOG("Firmware already loaded this boot.\n");
+	}
 
 	// Start up the isochronous transfers, then handle events forever.
 	

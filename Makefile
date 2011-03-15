@@ -5,7 +5,7 @@ LIBS=-lusb-1.0
 DATFILES=cancelled.dat channel1.dat channel2.dat channel3.dat channel4.dat
 WAVFILES=cancelled.wav channel1.wav channel2.wav channel3.wav channel4.wav
 
-run: $(OBJS)
+nuise: $(OBJS)
 	gcc $(OPTS) -o nuise $(OBJS) $(INCLUDE) $(LIBS)
 
 main.o: main.c

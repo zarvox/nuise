@@ -100,10 +100,13 @@ int upload_firmware(libusb_device_handle* dev) {
 	bootcmd.cmd   = le32(0);
 	bootcmd.addr  = le32(0x15);
 
-	LOG("About to send: ");
-	dump_bl_cmd(bootcmd);
 	int res;
 	int transferred;
+
+/*
+    // First transfer happens to be a version query, and not necessary.
+	LOG("About to send: ");
+	dump_bl_cmd(bootcmd);
 
 	res = libusb_bulk_transfer(dev, 1, (unsigned char*)&bootcmd, sizeof(bootcmd), &transferred, 0);
 	if(res != 0 || transferred != sizeof(bootcmd)) {
@@ -113,7 +116,7 @@ int upload_firmware(libusb_device_handle* dev) {
 	res = get_first_reply(dev); // This first one doesn't have the usual magic bytes at the beginning, and is 96 bytes long - much longer than the usual 12-byte replies.
 	res = get_reply(dev); // I'm not sure why we do this twice here, but maybe it'll make sense later.
 	tag++;
-
+*/
 	const char* fw_filename = "audios.bin";
 	FILE* fw = fopen(fw_filename, "r");
 	if(fw == NULL) {
