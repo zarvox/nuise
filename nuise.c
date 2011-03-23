@@ -78,7 +78,7 @@ static void iso_out_callback(struct libusb_transfer* xfer) {
 		//LOG("Sent ISO packet\n");
 		// queue the next packet to be sent
 		uint8_t* buf = xfer->buffer;
-		prepare_iso_out_data(xfer->user_data , buf);
+		prepare_iso_out_data((iso_out_stream*)xfer->user_data , buf);
 		libusb_submit_transfer(xfer);
 	} else {
 		LOG("Isochronous OUT transfer error: %d\n", xfer->status);
@@ -95,7 +95,7 @@ static void iso_in_callback(struct libusb_transfer* xfer) {
 		for(i = 0; i < stream->pkts; i++) {
 			if( xfer->iso_packet_desc[i].actual_length == 524 ) {
 				// Cool, this is audio data.
-				audio_data_block* block = (audio_data_block*)xfer->buffer;
+				audio_in_block* block = (audio_in_block*)xfer->buffer;
 				if( block->magic != 0x80000080) {
 					LOG("\tInvalid magic in iso IN packet: %08X\n", block->magic);
 					continue;
@@ -104,6 +104,12 @@ static void iso_in_callback(struct libusb_transfer* xfer) {
 					if (block->window != stream->window) {
 						// update the current window
 						LOG("audio window changed: was %04X now %04X\n", stream->window, block->window);
+						int t;
+						for(t = 0 ; t < 10; t++) {
+							if(stream->last_seen_window[t] != stream->window) {
+								LOG("\tDid not receive data for channel 0x%02x\n",t+1);
+							}
+						}
 						if(block->window - stream->window > 3)
 							LOG("Packet loss: dropped %d windows\n", (block->window - stream->window - 3) / 3);
 						stream->window = block->window;
@@ -132,8 +138,10 @@ static void iso_in_callback(struct libusb_transfer* xfer) {
 						default:
 							LOG("Invalid channel in iso IN packet: %d\n", block->channel);
 					}
+					stream->last_seen_window[block->channel-1] = block->window;
 				}
 			} else if ( xfer->iso_packet_desc[i].actual_length == 60 ) {
+				fwrite(xfer->buffer, 1, 60, stream->file_handles[5]);
 				// Cool, this is the uninterpreted signalling information.  Let's ignore it for now.
 			} else if ( xfer->iso_packet_desc[i].actual_length != 0 ) {
 				LOG("Received an iso IN packet of strange length: %d\n", xfer->iso_packet_desc[i].actual_length);
@@ -146,8 +154,8 @@ static void iso_in_callback(struct libusb_transfer* xfer) {
 }
 
 int start_iso_out(libusb_device_handle* dev, iso_out_stream* stream, int endpoint, int xfers, int pkts, int len) {
-	stream->timestamp = 0x949C;
-	stream->window = 0xFEED;
+	stream->timestamp = 0;
+	stream->window = 0;
 	stream->seq = 0;
 	stream->seq_in_window = 0;
 	stream->window_parity = 0;
@@ -158,8 +166,9 @@ int start_iso_out(libusb_device_handle* dev, iso_out_stream* stream, int endpoin
 
 	uint8_t* bufp = stream->buffer_space;
 	int i, ret;
+	LOG("Creating iso OUT transfers\n");
 	for(i = 0; i < xfers; i++) {
-		LOG("Creating iso OUT transfer %d\n", i);
+		//LOG("Creating iso OUT transfer %d\n", i);
 		stream->xfers[i] = libusb_alloc_transfer(pkts);
 		prepare_iso_out_data(stream, bufp);
 		libusb_fill_iso_transfer(stream->xfers[i], dev, endpoint, bufp, pkts * len, pkts, iso_out_callback, stream, 0);
@@ -173,24 +182,26 @@ int start_iso_out(libusb_device_handle* dev, iso_out_stream* stream, int endpoin
 }
 
 int start_iso_in(libusb_device_handle* dev, iso_in_stream* stream, int endpoint, int xfers, int pkts, int len) {
-	stream->file_handles = (FILE**)malloc(sizeof(FILE*) * 5);
+	stream->file_handles = (FILE**)malloc(sizeof(FILE*) * 6);
 	stream->file_handles[0] = fopen("cancelled.dat", "wb");
 	stream->file_handles[1] = fopen("channel1.dat", "wb");
 	stream->file_handles[2] = fopen("channel2.dat", "wb");
 	stream->file_handles[3] = fopen("channel3.dat", "wb");
 	stream->file_handles[4] = fopen("channel4.dat", "wb");
+	stream->file_handles[5] = fopen("sig.dat", "wb");
 	stream->xfers = (struct libusb_transfer**)malloc(sizeof(struct libusb_transfer*) * xfers);
 	stream->buffer_space = (uint8_t*)malloc(xfers * pkts * len);
 	stream->num_xfers = xfers;
 	stream->pkts = pkts;
 	stream->len = len;
-	stream->window = 0xFDFB; // Not bothering with these for now
+	stream->window = 0x0; // Not bothering with these for now
 	memset(stream->last_seen_window, 0 , 10*sizeof(uint16_t));
 
 	uint8_t* bufp = stream->buffer_space;
 	int i, ret;
+	LOG("Creating iso IN transfers\n");
 	for(i = 0; i < xfers; i++) {
-		LOG("Creating iso IN transfer %d\n", i);
+		//LOG("Creating iso IN transfer %d\n", i);
 		stream->xfers[i] = libusb_alloc_transfer(pkts);
 		libusb_fill_iso_transfer(stream->xfers[i], dev, endpoint, bufp, pkts * len, pkts, iso_in_callback, stream, 0);
 		libusb_set_iso_packet_lengths(stream->xfers[i], len);

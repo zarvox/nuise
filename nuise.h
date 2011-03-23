@@ -47,13 +47,29 @@ typedef struct {
 } iso_in_stream;
 
 typedef struct {
-	uint32_t magic;
-	uint16_t channel;
-	uint16_t len;
+	uint32_t magic;    // 0x80000080
+	uint16_t channel;  // Values between 0x1 and 0xa indicate audio channel
+	uint16_t len;      // packet length
+	uint16_t window;   // timestamp
+	uint16_t unknown;  // ???
+	int32_t samples[]; // Size depends on len
+} audio_in_block;
+
+typedef struct {
+	uint16_t left;
+	uint16_t right;
+	uint16_t center;
+	uint16_t lfe;
+	uint16_t surround_left;
+	uint16_t surround_right;
+} sample_51;
+
+typedef struct {
 	uint16_t window;
-	uint16_t unknown;
-	int32_t samples[128];
-} audio_data_block;
+	uint8_t seq;
+	uint8_t weird;
+	sample_51 samples[6];
+} audio_out_block;
 
 int start_iso_out(libusb_device_handle* dev, iso_out_stream* stream, int endpoint, int xfers, int pkts, int len);
 int start_iso_in(libusb_device_handle* dev, iso_in_stream* stream, int endpoint, int xfers, int pkts, int len);
