@@ -111,11 +111,12 @@ int main(int argc, char** argv) {
 		 *
 		 * The code exists here to show how it would work, though.
 		 */
-
+		/*
 		if(upload_cemd_data(dev) != 0) {
 			LOG("Something went wrong in upload_cemd_data(), aborting\n");
 			goto cleanup;
 		}
+		*/
 	} else {
 		LOG("Firmware already loaded this boot.\n");
 	}
