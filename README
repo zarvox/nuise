@@ -1,9 +1,15 @@
-This is NUIse, a proof-of-concept driver for the NUI Audio device in the Microsoft Kinect.
+This is NUIse, a proof-of-concept driver for the NUI Audio device in the
+Microsoft Kinect.
 
-You must provide your own copy of the NUI Audio firmware, audios.bin.  Place it in this folder.  See
+You must provide your own copy of the NUI Audio firmware, audios.bin.  The
+build system includes script to download an Xbox360 firmware update package and
+extract this file from the package, which currently requires Python, wget, and
+the "unzip" commandline utility.  See
 http://groups.google.com/group/openkinect/browse_thread/thread/17d96d9c36e3effc/df0a76abb4fd8414
+for more information.
 
-Simply run "make" to compile, then "./nuise".  Press Ctrl-C to stop recording.
+Simply run "make" to compile (and obtain audios.bin), then "./nuise".  Press
+Ctrl-C to stop recording.
 
 NUIse dumps the four microphone streams to channel{1,2,3,4}.dat and whatever
 noise-cancelled data may exist to cancelled.dat.  To process these raw dumps
@@ -18,19 +24,4 @@ Happy hacking!
 
 -Drew Fisher (zarvox) <drew.m.fisher@gmail.com>
 
-License: GPLv3+
-
-----------------------------
-
-NUIse is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+License: BSD 2-clause.  See the included LICENSE file.
