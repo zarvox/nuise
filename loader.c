@@ -49,7 +49,7 @@ static void dump_cemd_cmd(cemdloader_command cmd) {
 	int i;
 	for(i = 0; i < 24; i++)
 		LOG("%02X ", ((unsigned char*)(&cmd))[i]);
-	LOG("(%d more zeros)\n", sizeof(cmd)-24);
+	LOG("(%d more zeros)\n", (int)(sizeof(cmd)-24));
 }
 
 static int get_first_reply(libusb_device_handle* dev) {
@@ -77,7 +77,7 @@ static int get_reply(libusb_device_handle* dev) {
 	int transferred;
 	res = libusb_bulk_transfer(dev, 0x81, (unsigned char*)&buffer, 512, &transferred, 0);
 	if(res != 0 || transferred != sizeof(bootloader_status_code)) {
-		LOG("Error reading reply: %d\ttransferred: %d (expected %d)\n", res, transferred, sizeof(bootloader_status_code));
+		LOG("Error reading reply: %d\ttransferred: %d (expected %d)\n", res, transferred, (int)(sizeof(bootloader_status_code)));
 		return res;
 	}
 	if(le32(buffer.magic) != 0x0a6fe000) {
@@ -148,7 +148,7 @@ int upload_firmware(libusb_device_handle* dev) {
 		// Send it off!
 		res = libusb_bulk_transfer(dev, 1, (unsigned char*)&bootcmd, sizeof(bootcmd), &transferred, 0);
 		if(res != 0 || transferred != sizeof(bootcmd)) {
-			LOG("Error: res: %d\ttransferred: %d (expected %d)\n",res, transferred, sizeof(bootcmd));
+			LOG("Error: res: %d\ttransferred: %d (expected %d)\n",res, transferred, (int)(sizeof(bootcmd)));
 			return -1;
 		}
 		int bytes_sent = 0;
@@ -175,7 +175,7 @@ int upload_firmware(libusb_device_handle* dev) {
 	dump_bl_cmd(bootcmd);
 	res = libusb_bulk_transfer(dev, 1, (unsigned char*)&bootcmd, sizeof(bootcmd), &transferred, 0);
 	if(res != 0 || transferred != sizeof(bootcmd)) {
-		LOG("Error: res: %d\ttransferred: %d (expected %d)\n", res, transferred, sizeof(bootcmd));
+		LOG("Error: res: %d\ttransferred: %d (expected %d)\n", res, transferred, (int)sizeof(bootcmd));
 		return -1;
 	}
 	res = get_reply(dev);
@@ -198,7 +198,7 @@ int upload_cemd_data(libusb_device_handle* dev) {
 	int transferred;
 	res = libusb_bulk_transfer(dev, 1, (unsigned char*)&cemdcmd, sizeof(cemdcmd), &transferred, 0);
 	if(res != 0 || transferred != sizeof(cemdcmd)) {
-		LOG("Error: res: %d\ttransferred: %d (expected %d)\n", res, transferred, sizeof(cemdcmd));
+		LOG("Error: res: %d\ttransferred: %d (expected %d)\n", res, transferred, (int)sizeof(cemdcmd));
 		return -1;
 	}
 	res = get_reply(dev);
@@ -227,7 +227,7 @@ int upload_cemd_data(libusb_device_handle* dev) {
 		// Send it off!
 		res = libusb_bulk_transfer(dev, 1, (unsigned char*)&cemdcmd, sizeof(cemdcmd), &transferred, 0);
 		if(res != 0 || transferred != sizeof(cemdcmd)) {
-			LOG("Error: res: %d\ttransferred: %d (expected %d)\n",res, transferred, sizeof(cemdcmd));
+			LOG("Error: res: %d\ttransferred: %d (expected %d)\n",res, transferred, (int)sizeof(cemdcmd));
 			return -1;
 		}
 		int bytes_sent = 0;
@@ -254,7 +254,7 @@ int upload_cemd_data(libusb_device_handle* dev) {
 	LOG("Finishing CEMD data upload...\n");
 	res = libusb_bulk_transfer(dev, 1, (unsigned char*)&cemdcmd, sizeof(cemdcmd), &transferred, 0);
 	if(res != 0 || transferred != sizeof(cemdcmd)) {
-		LOG("Error: res: %d\ttransferred: %d (expected %d)\n", res, transferred, sizeof(cemdcmd));
+		LOG("Error: res: %d\ttransferred: %d (expected %d)\n", res, transferred, (int)sizeof(cemdcmd));
 		return -1;
 	}
 	res = get_reply(dev);
