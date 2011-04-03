@@ -65,12 +65,12 @@ typedef struct {
 } audio_in_block;
 
 typedef struct {
-	uint16_t left;
-	uint16_t right;
-	uint16_t center;
-	uint16_t lfe;
-	uint16_t surround_left;
-	uint16_t surround_right;
+	int16_t left;
+	int16_t right;
+	int16_t center;
+	int16_t lfe;
+	int16_t surround_left;
+	int16_t surround_right;
 } sample_51;
 
 typedef struct {
