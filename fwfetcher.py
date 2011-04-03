@@ -3,6 +3,7 @@
 from urllib2 import Request, urlopen, URLError
 import StringIO
 import zipfile
+import os
 
 def getFileOrURL(filename, url):
 	# Check if a file named filename exists on disk.
@@ -42,28 +43,30 @@ def extractPirsFromZip(systemupdate):
 	return pirs
 
 if __name__ == "__main__":
+	if not os.path.isfile("audios.bin"):
+		fw = getFileOrURL("SystemUpdate.zip", "http://www.xbox.com/system-update-usb")
+		extract360 = getFileOrURL("extract360.py", "ftp://rene-ladan.nl/pub/distfiles/extract360.py")
+		pirs = extractPirsFromZip(fw)
+		exec extract360
 
-	fw = getFileOrURL("SystemUpdate.zip", "http://www.xbox.com/system-update-usb")
-	extract360 = getFileOrURL("extract360.py", "ftp://rene-ladan.nl/pub/distfiles/extract360.py")
-	pirs = extractPirsFromZip(fw)
-	exec extract360
-
-	sio = StringIO.StringIO(pirs)
-	basename = "FFFE07DF00000001"
-	sio.name = basename
-	pwd = os.getcwd()
-	handle_live_pirs(sio, len(pirs)-4)
-	os.chdir(pwd)
-	print "Moving audios.bin to current folder"
-	os.rename(os.path.join(basename + ".dir", "audios.bin"), "audios.bin")
-	print "Cleaning up"
-	os.unlink(basename + ".txt")
-	for root, dirs, files in os.walk(basename + ".dir"):
-		for name in files:
-			os.remove(os.path.join(root, name))
-		for name in dirs:
-			os.rmdir(os.path.join(root, name))
-		os.rmdir(root)
-	os.unlink("SystemUpdate.zip")
-	os.unlink("extract360.py")
-	print "Done!"
+		sio = StringIO.StringIO(pirs)
+		basename = "FFFE07DF00000001"
+		sio.name = basename
+		pwd = os.getcwd()
+		handle_live_pirs(sio, len(pirs)-4)
+		os.chdir(pwd)
+		print "Moving audios.bin to current folder"
+		os.rename(os.path.join(basename + ".dir", "audios.bin"), "audios.bin")
+		print "Cleaning up"
+		os.unlink(basename + ".txt")
+		for root, dirs, files in os.walk(basename + ".dir"):
+			for name in files:
+				os.remove(os.path.join(root, name))
+			for name in dirs:
+				os.rmdir(os.path.join(root, name))
+			os.rmdir(root)
+		os.unlink("SystemUpdate.zip")
+		os.unlink("extract360.py")
+		print "Done!"
+	else:
+		print "Already have audios.bin"
